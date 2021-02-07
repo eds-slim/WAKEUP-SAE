@@ -66,8 +66,8 @@ res.Multi <- vglm(MRSSCOREd90 ~ SAE + age + SEX + NIHSS_baseline + LVO + stroke_
                , family = multinomial
                , data = newdata %>% mutate(MRSSCOREd90 = factor(MRSSCOREd90, ordered = FALSE)))
 
-p <- pchisq(deviance(res.PO)-deviance(res.Multi)
-       , df=df.residual(res.PO)-df.residual(res.Multi)
+p <- pchisq(deviance(res.PO) - deviance(res.Multi)
+       , df = df.residual(res.PO)-df.residual(res.Multi)
        , lower.tail=FALSE)
 
 pred.PO <- predictvglm(res.PO, type ='link', se.fit = TRUE)
@@ -90,7 +90,8 @@ df.PO %>%
   theme_minimal()
 
 
-pred.Multi %>% as_tibble(rownames = 'ID') %>% 
+
+df.PO.Multi <- pred.Multi %>% as_tibble(rownames = 'ID') %>% 
   setNames(c('ID', paste0('p',0:6))) %>% 
   mutate(`logitlink(P[Y>=2])` = p0
          , `logitlink(P[Y>=3])` = p0 + p1
@@ -100,7 +101,9 @@ pred.Multi %>% as_tibble(rownames = 'ID') %>%
          , `logitlink(P[Y>=7])` = p0 + p1 + p2 + p3 + p4 + p5) %>% 
   dplyr::select(starts_with('logit')) %>% 
   pivot_longer(1:6, values_to = 'prob') %>% dplyr::select(-name) %>% 
-  bind_cols(df.PO) %>% 
+  bind_cols(df.PO) 
+
+df.PO.Multi %>% 
   mutate(delta = prob - fit.trans) %>% 
   group_by(name) %>% 
   summarise(mean = mean(delta), sd = sd(delta)) %>% 
@@ -108,6 +111,10 @@ pred.Multi %>% as_tibble(rownames = 'ID') %>%
   geom_errorbar(aes(ymin = mean - 1.96*sd, ymax = mean + 1.96*sd)) +
   geom_point() +
   theme_minimal()
+
+df.PO.Multi %>% 
+  ggplot(aes(x = prob, y = fit.trans)) +
+  geom_point()
 ####
 
 ########################
@@ -188,6 +195,7 @@ pchisq(deviance(model_Infect) - deviance(model_SAE)  # model comparison
        , df = df.residual(model_Infect) - df.residual(model_SAE)
        , lower.tail=FALSE)###################################################
 
+
 m.cardiac.vglm <- vglm(MRSSCOREd90 ~ Cardiac.disorders + AGE + SEX + stroke_volume + Arterial_hypertension + Atrial_fibrillation + Diabetes_mellitus_type_II + NIHSSSCORE + LVO_V0
                , family = propodds
                , data = newdata2)
@@ -199,7 +207,7 @@ m.SAE.vglm <- vglm(MRSSCOREd90 ~ Cardiac.disorders  + Infections.and.infestation
                       , family = propodds
                       , data = newdata2)
 
-lrtest(m.SAE.vglm, m.infect.vglm)
+lrtest(m.SAE.vglm, m.cardiac.vglm)
 
 
 #####################p
